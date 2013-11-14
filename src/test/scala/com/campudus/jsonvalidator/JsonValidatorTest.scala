@@ -6,21 +6,19 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 import org.vertx.scala.core.FunctionConverters.tryToAsyncResultHandler
-import org.vertx.scala.core.json.Json
+import org.vertx.scala.core.json._
 import org.vertx.scala.testtools.ScalaClassRunner
 import org.vertx.scala.testtools.TestVerticle
 import org.junit.Test
 import org.vertx.scala.core.eventbus.Message
-import org.vertx.java.core.json.JsonObject
 import org.vertx.testtools.VertxAssert._
-import org.vertx.scala.core.json.JsonArray
 
 class JsonValidatorTest extends TestVerticle {
 
   override def asyncBefore(): Future[Unit] = {
     val p = Promise[Unit]
 
-    val config = Json.obj("schemas" -> Json.arr(Json.obj("schema" -> """
+    val config = Json.obj("schemas" -> Json.arr(Json.obj("schema" -> new JsonObject("""
     {
     	"$schema": "http://json-schema.org/draft-04/schema#",
 		"title": "Example Schema",
@@ -40,7 +38,7 @@ class JsonValidatorTest extends TestVerticle {
 		},
 		"required": ["firstName", "lastName"]
     }
-    """), Json.obj("key" -> "testSchema", "schema" -> """
+    """)), Json.obj("key" -> "testSchema", "schema" -> new JsonObject("""
     {
 	    "$schema": "http://json-schema.org/draft-04/schema#",
 	    "title": "Product set",
@@ -86,7 +84,7 @@ class JsonValidatorTest extends TestVerticle {
 	        "required": ["id", "name", "price"]
 	    }
     }
-    """)))
+    """))))
 
     container.deployModule(System.getProperty("vertx.modulename"), config, 1, {
       case Success(deploymentId) => p.success()
@@ -110,6 +108,7 @@ class JsonValidatorTest extends TestVerticle {
     """), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("MISSING_SCHEMA_KEY", msg.body.getString("error"))
+      testComplete()
     })
   }
 
@@ -122,6 +121,7 @@ class JsonValidatorTest extends TestVerticle {
     }
     """), { msg: Message[JsonObject] =>
       assertEquals("ok", msg.body.getString("status"))
+      testComplete()
     })
   }
 
@@ -149,6 +149,7 @@ class JsonValidatorTest extends TestVerticle {
   "required" : [ "firstName", "lastName" ],
   "missing" : [ "lastName" ]
 } ]"""), msg.body.getArray("report"))
+      testComplete()
     })
   }
 }

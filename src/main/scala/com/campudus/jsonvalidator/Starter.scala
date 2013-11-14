@@ -31,13 +31,16 @@ class Starter extends Verticle {
         (key, value)
     }: _*)
 
-    vertx.eventBus.registerHandler(config.getString("address", "campudus.jsonvalidator"), new SchemaValidatorBusMod(schemas), {
-      case Success(_) =>
-        logger.info("deployed")
-        p.success()
-      case Failure(ex) => p.failure(ex)
-    }: Try[Void] => Unit)
-        logger.info("starting async")
+    vertx.eventBus.registerHandler(
+      config.getString("address", "campudus.jsonvalidator"),
+      new SchemaValidatorBusMod(this, schemas),
+      {
+        case Success(_) =>
+          logger.info("deployed")
+          p.success()
+        case Failure(ex) => p.failure(ex)
+      }: Try[Void] => Unit)
+    logger.info("starting async")
   }
 
 }
