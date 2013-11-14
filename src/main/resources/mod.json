@@ -1,0 +1,17 @@
+{
+
+  // Scala verticle
+  "main":"scala:com.campudus.jsonvalidator.Starter",
+
+  // If your module is going to be registered in the Vert.x module registry you will also need the following
+  // mandatory fields
+  "description":"Vertx module to validate JSON against a schema (see http://json-schema.org/)",
+  "licenses": ["The Apache Software License Version 2.0"],
+  "author": "Max Stemplinger",
+
+  // Optional fields
+  "developers": ["Max Stemplinger", "Joern Bernhardt"],
+  "keywords": ["json", "validator", "schema", "validate", "validation"],
+  "homepage": "https://www.github.com/campudus/vertx-json-schema-validator"
+
+}
