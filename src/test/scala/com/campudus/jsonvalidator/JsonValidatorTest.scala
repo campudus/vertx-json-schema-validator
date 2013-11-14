@@ -93,19 +93,18 @@ class JsonValidatorTest extends TestVerticle {
     p.future
   }
 
-  /*@Test
-  def loadedSchema(): Unit = {
-    ???
-  }*/
+  val validSimpleJson = new JsonObject("""{
+    "firstName" : "Hans",
+    "lastName" : "Dampf"
+  }""")
+
+  val invalidSimpleJson = new JsonObject("""{
+    "firstName" : "Hans"
+  }""")
 
   @Test
   def missingKey(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "json" -> """
-    {
-    	"firstName" : "Hans",
-     	"lastName" : "Dampf"
-    }
-    """), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "json" -> validSimpleJson), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("MISSING_SCHEMA_KEY", msg.body.getString("error"))
       testComplete()
@@ -113,25 +112,34 @@ class JsonValidatorTest extends TestVerticle {
   }
 
   @Test
+  def invalidKey(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "non-existent", "json" -> validSimpleJson), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("INVALID_SCHEMA_KEY", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
+  @Test
   def validJson(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "schema0", "json" -> """
-    {
-    	"firstName" : "Hans",
-     	"lastName" : "Dampf"
-    }
-    """), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "schema0", "json" -> validSimpleJson), { msg: Message[JsonObject] =>
       assertEquals("ok", msg.body.getString("status"))
       testComplete()
     })
   }
 
   @Test
+  def missingJson(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "schema0"), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("MISSING_JSON", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
+  @Test
   def invalidJson(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "schema0", "json" -> """
-    {
-    	"firstName" : "Hans"
-    }
-    """), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "schema0", "json" -> invalidSimpleJson), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("VALIDATION_ERROR", msg.body.getString("error"))
       assertEquals(new JsonArray("""[ {

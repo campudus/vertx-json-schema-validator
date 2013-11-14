@@ -11,8 +11,9 @@ trait MessageHelper {
   }
   case class Error(message: String, id: Option[String] = None, obj: Option[JsonObject] = None) extends Reply {
     def toJson = {
-      val js = obj.getOrElse(Json.obj("status" -> "error", "message" -> message))
-      id map (x => js.putString("id", x))
+      val js = Json.obj("status" -> "error", "message" -> message)
+      id map (x => js.putString("error", x))
+      obj map (x => js.mergeIn(x))
       js
     }
   }

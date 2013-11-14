@@ -36,11 +36,9 @@ class Starter extends Verticle {
       new SchemaValidatorBusMod(this, schemas),
       {
         case Success(_) =>
-          logger.info("deployed")
           p.success()
         case Failure(ex) => p.failure(ex)
       }: Try[Void] => Unit)
-    logger.info("starting async")
   }
 
 }
