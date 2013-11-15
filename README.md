@@ -11,18 +11,21 @@ This module is based on the Java implementation of JSON-Schema by Francis Galieg
 `vertx install com.campudus.~json-schema-validator~0.1.0-SNAPSHOT`
 
 ## Configuration
+
     {
       "address" : <event-bus-addres-to-listen-on>,
-      "schemas" : [{"schema" : <yourJsonSchema>},{"key" : <keyForYourJsonSchema>,"schema" : <yourJsonSchema>}]
+      "schemas" : [{"schema" : <yourJsonSchema>},{"key" : <keyForYourJsonSchema>, "schema" : <yourJsonSchema>}]
     }
 
 * `address` - The address this module should register on the event bus. Defaults to `campudus.jsonvalidator`
 * `schemas` - This is an Array of schemas which are available to check against. Every schema in this Array is described by a JsonObject which should look like following:
 
+```
     {
       "key" : <keyForYourJsonSchema>,
       "schema" : <yourJsonSchema>
     }
+```
 
 * `key` - This is a key for this schema which is later used to define which schema should be used to check your JSON against. The key is optional. If you don't define a key, the key will be generated as: `schema<index>` where `index` is the position in the array of this schema.
 * `schema` - This is the JsonSchema Object which describes your JsonSchema (see http://json-schema.org/)
@@ -77,6 +80,7 @@ Use this action to validate a Json against a JsonSchema.
 
 ###Reply messages
 The module will reply to all requests.  In the message, there will be either a `"status" : "ok"` or a `"status" : "error"`. If the request could be processed without problems, it will result in an "ok" status. See an example here:
+
     {
       "status" : "ok",
     }
@@ -89,11 +93,12 @@ If the request resulted in an error, a possible reply message looks like this:
       "message" : <ERROR_MESSAGE>,
       "report" : <VALIDATION_REPORT>
     }
-    
+
 * `error` - Possible error keys are: `MISSING_JSON` `INVALID_SCHEMA_KEY` `MISSING_SCHEMA_KEY` `VALIDATION_ERROR`
 * `message` - The message which describes the error
 * `report` - This field is only present when the validation failed. A report can look like (see https://github.com/fge/json-schema-validator):
 
+```
     [ {
       "level" : "error",
       "schema" : {
@@ -109,7 +114,8 @@ If the request resulted in an error, a possible reply message looks like this:
       "required" : [ "firstName", "lastName" ],
       "missing" : [ "lastName" ]
     } ]
-    
+```
+
 ##Licence
 
 This project is freely available under the Apache 2 licence, fork, fix and send back :)
