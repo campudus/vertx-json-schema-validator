@@ -16,7 +16,7 @@ import com.github.fge.jsonschema.main.JsonSchema
 
 class Starter extends Verticle {
 
-  override def start(p: Promise[Unit]) = {
+  override def start(p: Promise[Unit]) = try {
     import scala.collection.JavaConverters._
     val config = container.config
     val schemasConfig = config.getArray("schemas", Json.arr()).asScala
@@ -26,7 +26,11 @@ class Starter extends Verticle {
       case (obj, idx) =>
         val schema = obj.asInstanceOf[JsonObject]
         val key = schema.getString("key", "schema" + idx)
-        val jsNode = JsonLoader.fromString(schema.getObject("schema", Json.obj()).encode())
+        val jsonString = schema.getObject("schema", Json.obj()).encode()
+        val jsNode = JsonLoader.fromString(jsonString)
+        if (!factory.getSyntaxValidator().schemaIsValid(jsNode)) {
+          throw new IllegalArgumentException("Schema is invalid: " + jsonString)
+        }
         val value = factory.getJsonSchema(jsNode)
         (key, value)
     }: _*)
@@ -39,6 +43,9 @@ class Starter extends Verticle {
           p.success()
         case Failure(ex) => p.failure(ex)
       }: Try[Void] => Unit)
+
+  } catch {
+    case ex: Throwable => p.failure(ex)
   }
 
 }

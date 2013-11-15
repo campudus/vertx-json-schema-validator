@@ -28,9 +28,7 @@ class SchemaValidatorBusMod(verticle: Verticle, schemas: Map[String, JsonSchema]
                     Error("Invalid JSON given: " + report.toString(),
                       Some("VALIDATION_ERROR"),
                       Some(Json.obj("report" ->
-                        new JsonArray(report.asScala.map(_.asJson())
-//                          case (key, value) => "\"" + key + "\":\"" + value + "\""
-                        .mkString ("[", ",", "]")))))
+                        new JsonArray(report.asScala.map(_.asJson()).mkString("[", ",", "]")))))
                   }
                 case None => Error("No JSON given!", Some("MISSING_JSON"))
               }
