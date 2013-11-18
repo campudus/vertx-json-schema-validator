@@ -59,7 +59,7 @@ This module is based on the Java implementation of JSON-Schema by Francis Galieg
     }
 
 ## Usage
-Currently there is only one command for this module.
+Currently there are two commands for this module.
 
 ###Validate Json
 
@@ -78,8 +78,19 @@ Use this action to validate a Json against a JsonSchema.
 * `key` - The key to the JsonSchema to validate against
 * `json` - The Json which should be validated
 
+###Get all schema keys
+
+Use this action to get all registered schema keys
+
+    {
+      "action" : "getSchemaKeys",
+    }
+
 ###Reply messages
-The module will reply to all requests.  In the message, there will be either a `"status" : "ok"` or a `"status" : "error"`. If the request could be processed without problems, it will result in an "ok" status. See an example here:
+The module will reply to all requests.  In the message, there will be either a `"status" : "ok"` or a `"status" : "error"`.
+
+####Reply to `validate` action
+If the request could be processed without problems, it will result in an "ok" status. See an example here:
 
     {
       "status" : "ok",
@@ -94,7 +105,7 @@ If the request resulted in an error, a possible reply message looks like this:
       "report" : <VALIDATION_REPORT>
     }
 
-* `error` - Possible error keys are: `MISSING_JSON` `INVALID_SCHEMA_KEY` `MISSING_SCHEMA_KEY` `VALIDATION_ERROR`
+* `error` - Possible error keys are: `MISSING_JSON` `INVALID_SCHEMA_KEY` `MISSING_SCHEMA_KEY` `VALIDATION_ERROR`, `INVALID_JSON`
 * `message` - The message which describes the error
 * `report` - This field is only present when the validation failed. A report can look like (see https://github.com/fge/json-schema-validator):
 
@@ -115,6 +126,14 @@ If the request resulted in an error, a possible reply message looks like this:
       "missing" : [ "lastName" ]
     } ]
 ```
+
+####Reply to `getSchemaKeys` action
+The request will result in an "ok" status and a JsonArray `schemas` with the schema keys. See an example here:
+
+    {
+      "status" : "ok",
+      "schemas" : ["simpleSchema", "complexSchema"]
+    }
 
 ##Licence
 

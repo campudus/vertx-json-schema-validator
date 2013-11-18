@@ -93,6 +93,73 @@ class JsonValidatorTest extends TestVerticle {
     p.future
   }
 
+  val validComplexJson = new JsonArray("""
+	[
+	 {
+	    "id": 2,
+	    "name": "An ice sculpture",
+	    "price": 12.50,
+	    "tags": ["cold", "ice"],
+	    "dimensions": {
+	      "length": 7.0,
+	      "width": 12.0,
+	      "height": 9.5
+	    },
+	    "warehouseLocation": {
+	      "latitude": -78.75,
+	      "longitude": 20.4
+	    }
+	  },
+	  {
+	    "id": 3,
+	    "name": "A blue mouse",
+	    "price": 25.50,
+	      "dimensions": {
+	      "length": 3.1,
+	      "width": 1.0,
+	      "height": 1.0
+	    },
+	    "warehouseLocation": {
+	      "latitude": 54.4,
+	      "longitude": -32.7
+	    }
+	  }
+	]
+  """)
+
+  val invalidComplexJson = new JsonArray("""
+	[
+	 {
+	    "id": 2,
+	    "name": "An ice sculpture",
+	    "price": 12.50,
+	    "tags": ["cold", "ice"],
+	    "dimensions": {
+	      "length": 7.0,
+	      "width": 12.0,
+	      "height": 9.5
+	    },
+	    "warehouseLocation": {
+	      "latitude": -78.75,
+	      "longitude": 20.4
+	    }
+	  },
+	  {
+	    "id": 3,
+	    "name": "A blue mouse",
+	    "price": 25.50,
+	      "dimensions": {
+	      "length": 3.1,
+	      "height": 1.0
+	    },
+	    "warehouseLocation": {
+	      "latitude": 54.4,
+	      "longitude": -32.7
+	    }
+	  }
+	]
+  """)
+
   val validSimpleJson = new JsonObject("""{
     "firstName" : "Hans",
     "lastName" : "Dampf"
@@ -129,6 +196,14 @@ class JsonValidatorTest extends TestVerticle {
   }
 
   @Test
+  def validJson2(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "testSchema", "json" -> validComplexJson), { msg: Message[JsonObject] =>
+      assertEquals("ok", msg.body.getString("status"))
+      testComplete()
+    })
+  }
+
+  @Test
   def missingJson(): Unit = {
     vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "schema0"), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
@@ -157,6 +232,47 @@ class JsonValidatorTest extends TestVerticle {
   "required" : [ "firstName", "lastName" ],
   "missing" : [ "lastName" ]
 } ]"""), msg.body.getArray("report"))
+      testComplete()
+    })
+  }
+
+  @Test
+  def invalidJson2(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "testSchema", "json" -> invalidComplexJson), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("VALIDATION_ERROR", msg.body.getString("error"))
+      assertEquals(new JsonArray("""[ {
+  "level" : "error",
+  "schema" : {
+    "loadingURI" : "#",
+    "pointer" : "/items/properties/dimensions"
+  },
+  "instance" : {
+    "pointer" : "/1/dimensions"
+  },
+  "domain" : "validation",
+  "keyword" : "required",
+  "message" : "missing required property(ies)",
+  "required" : [ "height", "length", "width" ],
+  "missing" : [ "width" ]
+} ]"""), msg.body.getArray("report"))
+      testComplete()
+    })
+  }
+
+  @Test
+  def noRealJsonParameter: Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "testSchema", "json" -> 1), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("INVALID_JSON", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
+  @Test def getAllSchemas(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "getSchemaKeys"), { msg: Message[JsonObject] =>
+      assertEquals("ok", msg.body.getString("status"))
+      assertEquals(Json.arr("schema0", "testSchema"), msg.body.getArray("schemas"))
       testComplete()
     })
   }
