@@ -215,7 +215,7 @@ class JsonValidatorTest extends TestVerticle {
   
   @Test
   def addSchema(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "addSchema", "json" -> addNewSchema), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "addSchema", "jsonSchema" -> addNewSchema), { msg: Message[JsonObject] =>
       assertEquals("ok", msg.body.getString("status"))
       vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "addSchema", "json" -> validSimpleJson), { msg: Message[JsonObject] =>
         assertEquals("ok", msg.body.getString("status"))
@@ -226,7 +226,7 @@ class JsonValidatorTest extends TestVerticle {
 
   @Test
   def addSchemaWithoutKey(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "json" -> addNewSchema), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "jsonSchema" -> addNewSchema), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("MISSING_SCHEMA_KEY", msg.body.getString("error"))
       testComplete()
@@ -235,7 +235,7 @@ class JsonValidatorTest extends TestVerticle {
 
   @Test
   def addSchemaWithInvalidJson(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "schema123", "json" -> addNewInvalidSchema), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "schema123", "jsonSchema" -> addNewInvalidSchema), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("INVALID_SCHEMA", msg.body.getString("error"))
       testComplete()
@@ -244,7 +244,7 @@ class JsonValidatorTest extends TestVerticle {
 
   @Test
   def addSchemaWithSameKeyAndWithoutOverwrite(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("EXISTING_SCHEMA_KEY", msg.body.getString("error"))
       testComplete()
@@ -253,7 +253,7 @@ class JsonValidatorTest extends TestVerticle {
 
   @Test
   def OverwriteTrue(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema, "overwrite" -> true), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema, "overwrite" -> true), { msg: Message[JsonObject] =>
       assertEquals("ok", msg.body.getString("status"))
       testComplete()
     })
@@ -261,7 +261,7 @@ class JsonValidatorTest extends TestVerticle {
 
   @Test
   def OverwriteFalse(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema, "overwrite" -> false), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema, "overwrite" -> false), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("EXISTING_SCHEMA_KEY", msg.body.getString("error"))
       testComplete()
@@ -270,7 +270,7 @@ class JsonValidatorTest extends TestVerticle {
 
   @Test
   def invalidOverwrite(): Unit = {
-    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema, "overwrite" -> "invalid"), { msg: Message[JsonObject] =>
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema, "overwrite" -> "invalid"), { msg: Message[JsonObject] =>
       assertEquals("error", msg.body.getString("status"))
       assertEquals("INVALID_OVERWRITE", msg.body.getString("error"))
       testComplete()

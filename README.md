@@ -59,7 +59,7 @@ This module is based on the Java implementation of JSON-Schema by Francis Galieg
     }
 
 ## Usage
-Currently there are two commands for this module.
+Currently there are three commands for this module.
 
 ###Validate Json
 
@@ -85,6 +85,72 @@ Use this action to get all registered schema keys
     {
       "action" : "getSchemaKeys",
     }
+
+###Add new JsonSchema
+
+Use this action to add a new JsonSchema.
+
+    {
+      "action" : "addSchema",
+      "key" : "simpleAddSchema",
+      "jsonSchema" : {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "title": "Example Schema",
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+            "age": {
+              "description": "Age in years",
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": ["firstName", "lastName"]
+        }
+      }
+    }
+    
+* `action` - Always `addSchema` for add a new JsonSchema
+* `key` - The key for the new JsonSchema
+* `jsonSchema` - The JsonSchema which should be added
+    
+Use this action to replace a JsonSchema.
+
+    {
+      "action" : "addSchema",
+      "key" : "simpleAddSchema",
+      "jsonSchema" : {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "title": "Example Schema",
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+            "age": {
+              "description": "Age in years",
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": ["firstName", "lastName"]
+        }
+      },
+      "overwrite": true
+    }
+    
+* `action` - Always `addSchema` for replace a new JsonSchema
+* `key` - The key for the replacing JsonSchema
+* `jsonSchema` - The JsonSchema which should be added
+* `overwrite` - Enable the replacing
 
 ###Reply messages
 The module will reply to all requests.  In the message, there will be either a `"status" : "ok"` or a `"status" : "error"`.
@@ -134,6 +200,25 @@ The request will result in an "ok" status and a JsonArray `schemas` with the sch
       "status" : "ok",
       "schemas" : ["simpleSchema", "complexSchema"]
     }
+
+####Reply to `addSchema` action
+
+If the request could be processed without problems, it will result in an "ok" status. See an example here:
+
+    {
+      "status" : "ok",
+    }
+
+If the request resulted in an error, a possible reply message looks like this:
+
+    {
+      "status" : "error",
+      "error" : <ERROR_KEY>,
+      "message" : <ERROR_MESSAGE>
+    }
+
+* `error` - Possible error keys are: `EXISTING_SCHEMA_KEY` `INVALID_SCHEMA` `MISSING_JSON` `INVALID_OVERWRITE`, `MISSING_SCHEMA_KEY`
+* `message` - The message which describes the error
 
 ##Licence
 

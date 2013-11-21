@@ -64,12 +64,12 @@ class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSch
             if (schemas.contains(key) && !overwrite) {
               Error("Key exists and overwrite is not true", Some("EXISTING_SCHEMA_KEY"))
             } else {
-              getObjectOrArray(msg.body, "json") match {
-                case Some(json) =>
+              getObjectOrArray(msg.body, "jsonSchema") match {
+                case Some(jsonSchema) =>
                   val factory = JsonSchemaFactory.byDefault()
-                  val jsNode = JsonLoader.fromString(json)
+                  val jsNode = JsonLoader.fromString(jsonSchema)
                   if (!factory.getSyntaxValidator().schemaIsValid(jsNode)) {
-                    Error("Schema is invalid: " + json, Some("INVALID_SCHEMA"))
+                    Error("Schema is invalid: " + jsonSchema, Some("INVALID_SCHEMA"))
                   } else {
                     schemas += (msg.body.getString("key") -> factory.getJsonSchema(jsNode))
                     Ok(Json.obj())
