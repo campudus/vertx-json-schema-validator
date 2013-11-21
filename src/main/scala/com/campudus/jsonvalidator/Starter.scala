@@ -25,7 +25,11 @@ class Starter extends Verticle {
     val schemas: Map[String, JsonSchema] = Map(schemasConfig.zipWithIndex.toSeq.map {
       case (obj, idx) =>
         val schema = obj.asInstanceOf[JsonObject]
-        val key = schema.getString("key", "schema" + idx)
+        val key = schema.getString("key")
+        if (key == null) {
+          throw new IllegalArgumentException("Key is not set")
+        }
+        //val key = schema.getString("key", "schema" + idx)
         val jsonString = schema.getObject("schema", Json.obj()).encode()
         val jsNode = JsonLoader.fromString(jsonString)
         if (!factory.getSyntaxValidator().schemaIsValid(jsNode)) {

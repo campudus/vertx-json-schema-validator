@@ -14,7 +14,7 @@ This module is based on the Java implementation of JSON-Schema by Francis Galieg
 
     {
       "address" : <event-bus-addres-to-listen-on>,
-      "schemas" : [{"schema" : <yourJsonSchema>},{"key" : <keyForYourJsonSchema>, "schema" : <yourJsonSchema>}]
+      "schemas" : [{"key" : <keyForYourJsonSchema>, "schema" : <yourJsonSchema>},{"key" : <keyForYourJsonSchema>, "schema" : <yourJsonSchema>}]
     }
 
 * `address` - The address this module should register on the event bus. Defaults to `campudus.jsonvalidator`
@@ -27,7 +27,7 @@ This module is based on the Java implementation of JSON-Schema by Francis Galieg
     }
 ```
 
-* `key` - This is a key for this schema which is later used to define which schema should be used to check your JSON against. The key is optional. If you don't define a key, the key will be generated as: `schema<index>` where `index` is the position in the array of this schema.
+* `key` - This is a key for this schema which is later used to define which schema should be used to check your JSON against. The key is a must have. If you don't define a key, you cant't deploy the module.
 * `schema` - This is the JsonSchema Object which describes your JsonSchema (see http://json-schema.org/)
 
 ###Example Configuration

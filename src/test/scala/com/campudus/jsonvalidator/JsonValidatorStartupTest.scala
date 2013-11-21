@@ -16,7 +16,7 @@ import org.vertx.testtools.VertxAssert._
 class JsonValidatorStartupTest extends TestVerticle {
 
   @Test def startupFailWithInvalidSchema() = {
-    val config = Json.obj("schemas" -> Json.arr(Json.obj("schema" -> new JsonObject("""
+    val config = Json.obj("schemas" -> Json.arr(Json.obj("key" -> "testSchema", "schema" -> new JsonObject("""
     {
     	"$schema": "http://json-schema.org/draft-04/schema#",
 		"title": "Example Schema",
@@ -31,6 +31,35 @@ class JsonValidatorStartupTest extends TestVerticle {
 			"age": {
 				"description": "Age in years",
 				"type": "blubb",
+				"minimum": 0
+			}
+		},
+		"required": ["firstName", "lastName"]
+    }
+    """))))
+
+    container.deployModule(System.getProperty("vertx.modulename"), config, 1, {
+      case Success(deploymentId) => fail("Deployment should fail with wrong Schema but was successful")
+      case Failure(ex) => testComplete()
+    }: Try[String] => Unit)
+  }
+  
+  @Test def startupFailWithoutKey() = {
+    val config = Json.obj("schemas" -> Json.arr(Json.obj("schema" -> new JsonObject("""
+    {
+    	"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "Example Schema",
+		"type": "object",
+		"properties": {
+			"firstName": {
+				"type": "string"
+			},
+			"lastName": {
+				"type": "string"
+			},
+			"age": {
+				"description": "Age in years",
+				"type": "integer",
 				"minimum": 0
 			}
 		},

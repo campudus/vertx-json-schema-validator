@@ -18,7 +18,7 @@ class JsonValidatorTest extends TestVerticle {
   override def asyncBefore(): Future[Unit] = {
     val p = Promise[Unit]
 
-    val config = Json.obj("schemas" -> Json.arr(Json.obj("schema" -> new JsonObject("""
+    val config = Json.obj("schemas" -> Json.arr(Json.obj("key" -> "schema0", "schema" -> new JsonObject("""
     {
     	"$schema": "http://json-schema.org/draft-04/schema#",
 		"title": "Example Schema",
