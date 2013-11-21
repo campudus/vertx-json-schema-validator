@@ -169,6 +169,114 @@ class JsonValidatorTest extends TestVerticle {
     "firstName" : "Hans"
   }""")
 
+  val addNewSchema = new JsonObject("""
+    {
+    	"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "Example Schema",
+		"type": "object",
+		"properties": {
+			"firstName": {
+				"type": "string"
+			},
+			"lastName": {
+				"type": "string"
+			},
+			"age": {
+				"description": "Age in years",
+				"type": "integer",
+				"minimum": 0
+			}
+		},
+		"required": ["firstName", "lastName"]
+    }
+    """)
+  
+    val addNewInvalidSchema = new JsonObject("""
+    {
+    	"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "Example Schema",
+		"type": "object",
+		"properties": {
+			"firstName": {
+				"type": "string"
+			},
+			"lastName": {
+				"type": "string"
+			},
+			"age": {
+				"description": "Age in years",
+				"type": "blub",
+				"minimum": 0
+			}
+		},
+		"required": ["firstName", "lastName"]
+    }
+    """)
+  
+  @Test
+  def addSchema(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "addSchema", "json" -> addNewSchema), { msg: Message[JsonObject] =>
+      assertEquals("ok", msg.body.getString("status"))
+      vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "key" -> "addSchema", "json" -> validSimpleJson), { msg: Message[JsonObject] =>
+        assertEquals("ok", msg.body.getString("status"))
+        testComplete()
+      })
+    })
+  }
+
+  @Test
+  def addSchemaWithoutKey(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "json" -> addNewSchema), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("MISSING_SCHEMA_KEY", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
+  @Test
+  def addSchemaWithInvalidJson(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "schema123", "json" -> addNewInvalidSchema), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("INVALID_SCHEMA", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
+  @Test
+  def addSchemaWithSameKeyAndWithoutOverwrite(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("EXISTING_SCHEMA_KEY", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
+  @Test
+  def OverwriteTrue(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema, "overwrite" -> true), { msg: Message[JsonObject] =>
+      assertEquals("ok", msg.body.getString("status"))
+      testComplete()
+    })
+  }
+
+  @Test
+  def OverwriteFalse(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema, "overwrite" -> false), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("EXISTING_SCHEMA_KEY", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
+  @Test
+  def invalidOverwrite(): Unit = {
+    vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "addSchema", "key" -> "testSchema", "json" -> addNewSchema, "overwrite" -> "invalid"), { msg: Message[JsonObject] =>
+      assertEquals("error", msg.body.getString("status"))
+      assertEquals("INVALID_OVERWRITE", msg.body.getString("error"))
+      testComplete()
+    })
+  }
+
   @Test
   def missingKey(): Unit = {
     vertx.eventBus.send("campudus.jsonvalidator", Json.obj("action" -> "validate", "json" -> validSimpleJson), { msg: Message[JsonObject] =>
