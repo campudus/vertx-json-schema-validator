@@ -12,6 +12,8 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory
 
 class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSchema]) extends ScalaBusMod {
   import scala.collection.JavaConverters._
+  
+  val schemaFactory = JsonSchemaFactory.byDefault()
 
   def getObjectOrArray(obj: JsonObject, key: String): Option[String] = {
     Option(obj.getField(key)) map { value: JsonElement =>
@@ -62,16 +64,15 @@ class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSch
           try {
             val overwrite = msg.body.getBoolean("overwrite", false)
             if (schemas.contains(key) && !overwrite) {
-              Error("Key exists and overwrite is not true", Some("EXISTING_SCHEMA_KEY"))
+              Error("Key already exists and overwrite is not true", Some("EXISTING_SCHEMA_KEY"))
             } else {
               getObjectOrArray(msg.body, "jsonSchema") match {
                 case Some(jsonSchema) =>
-                  val factory = JsonSchemaFactory.byDefault()
                   val jsNode = JsonLoader.fromString(jsonSchema)
-                  if (!factory.getSyntaxValidator().schemaIsValid(jsNode)) {
+                  if (!schemaFactory.getSyntaxValidator().schemaIsValid(jsNode)) {
                     Error("Schema is invalid: " + jsonSchema, Some("INVALID_SCHEMA"))
                   } else {
-                    schemas += (msg.body.getString("key") -> factory.getJsonSchema(jsNode))
+                    schemas += (msg.body.getString("key") -> schemaFactory.getJsonSchema(jsNode))
                     Ok(Json.obj())
                   }
                 case None => Error("No JSON given!", Some("MISSING_JSON"))
