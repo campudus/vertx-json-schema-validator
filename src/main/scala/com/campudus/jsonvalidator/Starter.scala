@@ -19,9 +19,40 @@ class Starter extends Verticle {
   override def start(p: Promise[Unit]) = try {
     import scala.collection.JavaConverters._
     val config = container.config
+    val factory = JsonSchemaFactory.byDefault()
+    
+    val defaultSchema = new JsonObject("""
+    {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "schemas": {
+		  "type": "array",
+		  "items": {
+		    "type": "object",
+		    "properties": {
+		      "key": {
+		        "type": "string"
+		      },
+		      "schema": {
+		        "type": "object"
+		      }
+		    },
+		    "required": ["key", "schema"]
+		  }
+        }
+      }
+    }
+    """).toString()
+
+    if(!factory.getJsonSchema(JsonLoader.fromString(defaultSchema)).validate(JsonLoader.fromString(config.toString())).isSuccess()) {
+      throw new IllegalArgumentException("Schema is invalid: " + config)
+    }
+
     val schemasConfig = config.getArray("schemas", Json.arr()).asScala
 
-    val factory = JsonSchemaFactory.byDefault();
     val schemas: Map[String, JsonSchema] = Map(schemasConfig.zipWithIndex.toSeq.map {
       case (obj, idx) =>
         val schema = obj.asInstanceOf[JsonObject]

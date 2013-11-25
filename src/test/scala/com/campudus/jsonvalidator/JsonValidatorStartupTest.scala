@@ -73,4 +73,13 @@ class JsonValidatorStartupTest extends TestVerticle {
     }: Try[String] => Unit)
   }
 
+  @Test def startupFailWithoutSchema() = {
+    val config = Json.obj("schemas" -> Json.arr(Json.obj("key" -> "testSchema")))
+
+    container.deployModule(System.getProperty("vertx.modulename"), config, 1, {
+      case Success(deploymentId) => fail("Deployment should fail with wrong Schema but was successful")
+      case Failure(ex) => testComplete()
+    }: Try[String] => Unit)
+  }
+  
 }
