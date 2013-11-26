@@ -47,8 +47,9 @@ class Starter extends Verticle {
     }
     """).toString()
 
-    if(!factory.getJsonSchema(JsonLoader.fromString(defaultSchema)).validate(JsonLoader.fromString(config.toString())).isSuccess()) {
-      throw new IllegalArgumentException("Schema is invalid: " + config)
+    val report = factory.getJsonSchema(JsonLoader.fromString(defaultSchema)).validate(JsonLoader.fromString(config.toString()))
+    if(!report.isSuccess()) {
+      throw new IllegalArgumentException("Invalid JSON given: " + Json.obj("report" -> new JsonArray(report.asScala.map(_.asJson()).mkString("[", ",", "]"))))
     }
 
     val schemasConfig = config.getArray("schemas", Json.arr()).asScala
@@ -56,12 +57,7 @@ class Starter extends Verticle {
     val schemas: Map[String, JsonSchema] = Map(schemasConfig.zipWithIndex.toSeq.map {
       case (obj, idx) =>
         val schema = obj.asInstanceOf[JsonObject]
-        val key = Option(schema.getString("key")) match {
-          case Some(key) => key
-          case None =>
-            throw new IllegalArgumentException("Key for a schema is not set")
-        }
-
+        val key = schema.getString("key")
         val jsonString = schema.getObject("schema", Json.obj()).encode()
         val jsNode = JsonLoader.fromString(jsonString)
         if (!factory.getSyntaxValidator().schemaIsValid(jsNode)) {
