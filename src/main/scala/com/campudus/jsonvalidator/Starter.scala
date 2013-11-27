@@ -20,9 +20,10 @@ class Starter extends Verticle {
     import scala.collection.JavaConverters._
     val config = container.config
     val factory = JsonSchemaFactory.byDefault()
-    
-    val defaultSchema = new JsonObject("""
+
+    val configSchema = new JsonObject("""
     {
+      "$schema": "http://json-schema.org/draft-04/schema#",
       "type": "object",
       "properties": {
         "address": {
@@ -47,9 +48,9 @@ class Starter extends Verticle {
     }
     """).toString()
 
-    val report = factory.getJsonSchema(JsonLoader.fromString(defaultSchema)).validate(JsonLoader.fromString(config.toString()))
-    if(!report.isSuccess()) {
-      throw new IllegalArgumentException("Invalid JSON given: " + Json.obj("report" -> new JsonArray(report.asScala.map(_.asJson()).mkString("[", ",", "]"))))
+    val report = factory.getJsonSchema(JsonLoader.fromString(configSchema)).validate(JsonLoader.fromString(config.encode()))
+    if (!report.isSuccess()) {
+      throw new IllegalArgumentException("Invalid config: " + Json.obj("report" -> new JsonArray(report.asScala.map(_.asJson()).mkString("[", ",", "]"))))
     }
 
     val schemasConfig = config.getArray("schemas", Json.arr()).asScala
