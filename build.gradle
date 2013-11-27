@@ -88,6 +88,11 @@ def configurePom(def pom) {
         name 'Joern Bernhardt'
         email 'jb@campudus.com'
       }
+      developer {
+        id 'SaschaSchmidt'
+        name 'Sascha Schmidt'
+        email 'sschmid@haw-landshut.de'
+      }
     }
 
     scm {

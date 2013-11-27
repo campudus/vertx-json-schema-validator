@@ -10,7 +10,7 @@
   "author": "Max Stemplinger",
 
   // Optional fields
-  "developers": ["Max Stemplinger", "Joern Bernhardt"],
+  "developers": ["Max Stemplinger", "Joern Bernhardt", "Sascha Schmidt"],
   "keywords": ["json", "validator", "schema", "validate", "validation"],
   "homepage": "https://www.github.com/campudus/vertx-json-schema-validator"
 
