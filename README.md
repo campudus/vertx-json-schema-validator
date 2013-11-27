@@ -2,7 +2,7 @@
 
 Vertx module to validate JSON against a schema (see http://json-schema.org/)
 
-This module is based on the Java implementation of JSON-Schema by Francis Galiegue (see https://github.com/fge/json-schema-validator), licensed under the [ LGPLv3](https://github.com/fge/json-schema-validator/blob/master/src/main/resources/LICENSE).
+This module relies internally on the Java implementation of JSON-Schema by Francis Galiegue (see https://github.com/fge/json-schema-validator), licensed under the [LGPLv3](https://github.com/fge/json-schema-validator/blob/master/src/main/resources/LICENSE). So if you use this module, don't forget to give credit to Francis.
 
 ## Requirements
 * Vert.x 2.1M1+
