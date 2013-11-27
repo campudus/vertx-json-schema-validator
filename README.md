@@ -2,18 +2,18 @@
 
 Vertx module to validate JSON against a schema (see http://json-schema.org/)
 
-This module is based on the Java implementation of JSON-Schema by Francis Galiegue (see https://github.com/fge/json-schema-validator)
+This module is based on the Java implementation of JSON-Schema by Francis Galiegue (see https://github.com/fge/json-schema-validator), licensed under the [ LGPLv3](https://github.com/fge/json-schema-validator/blob/master/src/main/resources/LICENSE).
 
 ## Requirements
 * Vert.x 2.1M1+
 
 ##Installation
-`vertx install com.campudus.~json-schema-validator~0.1.0-SNAPSHOT`
+`vertx install com.campudus~json-schema-validator~1.0.0`
 
 ## Configuration
 
     {
-      "address" : <event-bus-addres-to-listen-on>,
+      "address" : <event-bus-address-to-listen-on>,
       "schemas" : [{"key" : <keyForYourJsonSchema>, "schema" : <yourJsonSchema>},{"key" : <keyForYourJsonSchema>, "schema" : <yourJsonSchema>}]
     }
 
