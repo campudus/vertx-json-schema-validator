@@ -14,34 +14,38 @@
  */
 package com.campudus.jsonvalidator
 
-import scala.concurrent.Future
-import org.vertx.java.core.json.JsonObject
-import org.vertx.scala.core.eventbus.Message
 import org.vertx.scala.core.json._
 import org.vertx.scala.platform.Verticle
+import org.vertx.scala.mods.ScalaBusMod
+import org.vertx.scala.mods.ScalaBusMod._
+import org.vertx.scala.mods.replies.{Ok, Error}
 import com.github.fge.jsonschema.main.JsonSchema
-import io.vertx.busmod.ScalaBusMod
-import com.github.fge.jsonschema.util.JsonLoader
 import com.github.fge.jsonschema.main.JsonSchemaFactory
+import com.github.fge.jackson.JsonLoader
 
 class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSchema]) extends ScalaBusMod {
+  val container = verticle.container
+  val vertx = verticle.vertx
+  val logger = verticle.logger
+
   import scala.collection.JavaConverters._
-  
+
   val schemaFactory = JsonSchemaFactory.byDefault()
 
   def getObjectOrArray(obj: JsonObject, key: String): Option[String] = {
-    Option(obj.getField(key)) map { value: JsonElement =>
-      if (value.isObject()) {
-        value.asObject().encode()
-      } else {
-        value.asArray().encode()
-      }
+    Option(obj.getField(key)) map {
+      value: JsonElement =>
+        if (value.isObject()) {
+          value.asObject().encode()
+        } else {
+          value.asArray().encode()
+        }
     }
   }
 
-  override def asyncReceive(msg: Message[JsonObject]) = {
+  def receive: Receive = msg => {
     case "validate" =>
-      val reply = Option(msg.body.getString("key")) match {
+      Option(msg.body.getString("key")) match {
         case Some(key) =>
           schemas.get(key) match {
             case Some(schema) =>
@@ -53,51 +57,48 @@ class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSch
                       Ok(Json.obj())
                     } else {
                       Error("Invalid JSON given: " + report.toString(),
-                        Some("VALIDATION_ERROR"),
-                        Some(Json.obj("report" ->
-                          new JsonArray(report.asScala.map(_.asJson()).mkString("[", ",", "]")))))
+                        "VALIDATION_ERROR",
+                        Json.obj("report" ->
+                          new JsonArray(report.asScala.map(_.asJson()).mkString("[", ",", "]"))))
                     }
-                  case None => Error("No JSON given!", Some("MISSING_JSON"))
+                  case None => Error("No JSON given!", "MISSING_JSON")
                 }
               } catch {
-                case cce: ClassCastException => Error("Invalid JSON given!", Some("INVALID_JSON"))
+                case cce: ClassCastException => Error("Invalid JSON given!", "INVALID_JSON")
               }
-            case None => Error("No schema found!", Some("INVALID_SCHEMA_KEY"))
+            case None => Error("No schema found!", "INVALID_SCHEMA_KEY")
           }
-        case None => Error("No key for schema given!", Some("MISSING_SCHEMA_KEY"))
+        case None => Error("No key for schema given!", "MISSING_SCHEMA_KEY")
       }
-      Future.successful(reply)
 
     case "getSchemaKeys" =>
-      val reply = Ok(Json.obj("schemas" -> Json.arr(schemas.keys.toSeq: _*)))
-      Future.successful(reply)
+      Ok(Json.obj("schemas" -> Json.arr(schemas.keys.toSeq: _*)))
 
     case "addSchema" =>
-      val reply = Option(msg.body.getString("key")) match {
+      Option(msg.body.getString("key")) match {
         case Some(key) =>
           try {
             val overwrite = msg.body.getBoolean("overwrite", false)
             if (schemas.contains(key) && !overwrite) {
-              Error("Key already exists and overwrite is not true", Some("EXISTING_SCHEMA_KEY"))
+              Error("Key already exists and overwrite is not true", "EXISTING_SCHEMA_KEY")
             } else {
               getObjectOrArray(msg.body, "jsonSchema") match {
                 case Some(jsonSchema) =>
                   val jsNode = JsonLoader.fromString(jsonSchema)
                   if (!schemaFactory.getSyntaxValidator().schemaIsValid(jsNode)) {
-                    Error("Schema is invalid: " + jsonSchema, Some("INVALID_SCHEMA"))
+                    Error("Schema is invalid: " + jsonSchema, "INVALID_SCHEMA")
                   } else {
                     schemas += (msg.body.getString("key") -> schemaFactory.getJsonSchema(jsNode))
                     Ok(Json.obj())
                   }
-                case None => Error("No JSON given!", Some("MISSING_JSON"))
+                case None => Error("No JSON given!", "MISSING_JSON")
               }
             }
           } catch {
-            case cce: ClassCastException => Error("Invalid OVERWRITE given!", Some("INVALID_OVERWRITE"))
+            case cce: ClassCastException => Error("Invalid OVERWRITE given!", "INVALID_OVERWRITE")
           }
-        case None => Error("No key for schema given!", Some("MISSING_SCHEMA_KEY"))
+        case None => Error("No key for schema given!", "MISSING_SCHEMA_KEY")
       }
-      Future.successful(reply)
-      
+
   }
 }

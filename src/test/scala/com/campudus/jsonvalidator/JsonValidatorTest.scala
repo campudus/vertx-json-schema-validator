@@ -350,7 +350,7 @@ class JsonValidatorTest extends TestVerticle {
   },
   "domain" : "validation",
   "keyword" : "required",
-  "message" : "missing required property(ies)",
+  "message" : "object has missing required properties ([\"lastName\"])",
   "required" : [ "firstName", "lastName" ],
   "missing" : [ "lastName" ]
 } ]"""), msg.body.getArray("report"))
@@ -374,7 +374,7 @@ class JsonValidatorTest extends TestVerticle {
   },
   "domain" : "validation",
   "keyword" : "required",
-  "message" : "missing required property(ies)",
+  "message" : "object has missing required properties ([\"width\"])",
   "required" : [ "height", "length", "width" ],
   "missing" : [ "width" ]
 } ]"""), msg.body.getArray("report"))

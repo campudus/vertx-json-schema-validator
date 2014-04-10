@@ -17,16 +17,13 @@ package com.campudus.jsonvalidator
 import org.vertx.scala.platform.Verticle
 import org.vertx.scala.core.json._
 import scala.concurrent.Promise
-import org.vertx.scala.core.eventbus.Message
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
 import org.vertx.scala.core.FunctionConverters._
-import io.vertx.busmod.ScalaBusMod
-import scala.concurrent.Future
 import com.github.fge.jsonschema.main.JsonSchemaFactory
-import com.github.fge.jsonschema.util.JsonLoader
 import com.github.fge.jsonschema.main.JsonSchema
+import com.github.fge.jackson.JsonLoader
 
 class Starter extends Verticle {
 
@@ -35,8 +32,7 @@ class Starter extends Verticle {
     val config = container.config
     val factory = JsonSchemaFactory.byDefault()
 
-    val configSchema = new JsonObject("""
-    {
+    val configSchema = new JsonObject( """{
       "$schema": "http://json-schema.org/draft-04/schema#",
       "type": "object",
       "properties": {
@@ -59,8 +55,7 @@ class Starter extends Verticle {
 		  }
         }
       }
-    }
-    """).toString()
+    }""").toString()
 
     val report = factory.getJsonSchema(JsonLoader.fromString(configSchema)).validate(JsonLoader.fromString(config.encode()))
     if (!report.isSuccess()) {
@@ -84,8 +79,7 @@ class Starter extends Verticle {
 
     vertx.eventBus.registerHandler(
       config.getString("address", "campudus.jsonvalidator"),
-      new SchemaValidatorBusMod(this, schemas),
-      {
+      new SchemaValidatorBusMod(this, schemas), {
         case Success(_) =>
           p.success()
         case Failure(ex) => p.failure(ex)
