@@ -2,13 +2,14 @@
 
 Vertx module to validate JSON against a schema (see http://json-schema.org/)
 
-This module relies internally on the Java implementation of JSON-Schema by Francis Galiegue (see https://github.com/fge/json-schema-validator), licensed under the [LGPLv3](https://github.com/fge/json-schema-validator/blob/master/src/main/resources/LICENSE). So if you use this module, don't forget to give credit to Francis.
+This module relies internally on the Java implementation of JSON-Schema by Francis Galiegue (see https://github.com/fge/json-schema-validator),
+licensed under the [LGPLv3](https://github.com/fge/json-schema-validator/blob/master/LICENSE) and [ASL 2.0](https://github.com/fge/json-schema-validator/blob/master/LICENSE). So if you use this module, don't forget to give credit to Francis.
 
 ## Requirements
-* Vert.x 2.1M1+
+* Vert.x 2.1.x
 
 ##Installation
-`vertx install com.campudus~json-schema-validator~1.0.0`
+`vertx install com.campudus~json-schema-validator~1.1.0`
 
 ## Configuration
 
@@ -34,7 +35,7 @@ This module relies internally on the Java implementation of JSON-Schema by Franc
     {
       "schemas" : [
         {
-          "key" : "simpleSchema",
+          "key" : "simple_schema",
           "schema" : {
             "$schema": "http://json-schema.org/draft-04/schema#",
             "title": "Example Schema",
@@ -67,7 +68,7 @@ Use this action to validate a Json against a JsonSchema.
 
     {
       "action" : "validate",
-      "key" : "simpleSchema",
+      "key" : "simple_schema",
       "json" : {
         "firstName" : "Hans",
         "lastName" : "Dampf"
@@ -119,38 +120,49 @@ Use this action to add a new JsonSchema.
 * `key` - The key for the new JsonSchema
 * `jsonSchema` - The JsonSchema which should be added
     
-Use this action to replace a JsonSchema.
+**With Version 1.0.0 replacement of a JsonSchema was possible. This feature was removed in version 1.1.0!**
+
+###Referencing in a Json schema
+In a Json schema it is possible to reference to a schema defined by an URI. This module does **not** support the natively supported schemes from the underlying Java library.
+This is because the Java library is using blocking code, which can't be used in a vertx module.
+
+Although this module offers to reference to schemas which are already added through the config or with the `addSchema` command.
+To do this you have to use `vertxjsonschema://` followed by the key of the schema as the URI. Here is a short example on how this works:
+
+First add a schema which should be referenced later (either within the config or with the `addSchema` command). I used `addSchema` here:
 
     {
       "action" : "addSchema",
-      "key" : "simpleAddSchema",
-      "jsonSchema" : {
-        "$schema": "http://json-schema.org/draft-04/schema#",
-        "title": "Example Schema",
-        "type": "object",
-        "properties": {
-          "firstName": {
-            "type": "string"
-          },
-          "lastName": {
-            "type": "string"
-          },
-            "age": {
-              "description": "Age in years",
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "required": ["firstName", "lastName"]
-        }
+      "key" : "geoschema",
+      "description": "A geographical coordinate",
+      "type": "object",
+      "properties": {
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" }
       },
-      "overwrite": true
+      "required": ["latitude", "longitude"]
     }
     
-* `action` - Always `addSchema` for replace a new JsonSchema
-* `key` - The key for the replacing JsonSchema
-* `jsonSchema` - The JsonSchema which should be added
-* `overwrite` - Enable the replacing
+After that you can reference to this schema like following:
+
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Example Schema",
+      "type": "object",
+      "properties": {
+        "person": {
+          "type" : "object",
+          "properties": {
+            "location" : {
+              "$ref": "vertxjsonschema://geoschema"
+            },
+            "job": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
 
 ###Reply messages
 The module will reply to all requests.  In the message, there will be either a `"status" : "ok"` or a `"status" : "error"`.
@@ -171,11 +183,11 @@ If the request resulted in an error, a possible reply message looks like this:
       "report" : <VALIDATION_REPORT>
     }
 
-* `error` - Possible error keys are: `MISSING_JSON` `INVALID_SCHEMA_KEY` `MISSING_SCHEMA_KEY` `VALIDATION_ERROR`, `INVALID_JSON`
+* `error` - Possible error keys are: `MISSING_JSON` `INVALID_SCHEMA_KEY` `MISSING_SCHEMA_KEY` `VALIDATION_ERROR` `VALIDATION_PROCESS_ERROR` `INVALID_JSON`
 * `message` - The message which describes the error
 * `report` - This field is only present when the validation failed. A report can look like (see https://github.com/fge/json-schema-validator):
 
-```
+
     [ {
       "level" : "error",
       "schema" : {
@@ -191,14 +203,14 @@ If the request resulted in an error, a possible reply message looks like this:
       "required" : [ "firstName", "lastName" ],
       "missing" : [ "lastName" ]
     } ]
-```
+
 
 ####Reply to `getSchemaKeys` action
 The request will result in an "ok" status and a JsonArray `schemas` with the schema keys. See an example here:
 
     {
       "status" : "ok",
-      "schemas" : ["simpleSchema", "complexSchema"]
+      "schemas" : ["simple_schema", "complex_schema"]
     }
 
 ####Reply to `addSchema` action
@@ -217,7 +229,7 @@ If the request resulted in an error, a possible reply message looks like this:
       "message" : <ERROR_MESSAGE>
     }
 
-* `error` - Possible error keys are: `EXISTING_SCHEMA_KEY` `INVALID_SCHEMA` `MISSING_JSON` `INVALID_OVERWRITE`, `MISSING_SCHEMA_KEY`
+* `error` - Possible error keys are: `EXISTING_SCHEMA_KEY` `INVALID_SCHEMA` `MISSING_JSON` `MISSING_SCHEMA_KEY`
 * `message` - The message which describes the error
 
 ##Licence

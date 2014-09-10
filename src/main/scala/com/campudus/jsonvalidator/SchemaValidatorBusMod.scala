@@ -14,23 +14,22 @@
  */
 package com.campudus.jsonvalidator
 
+import com.github.fge.jackson.JsonLoader
+import com.github.fge.jsonschema.core.exceptions.ProcessingException
+import com.github.fge.jsonschema.core.load.configuration.LoadingConfigurationBuilder
+import com.github.fge.jsonschema.main.JsonSchemaFactory
 import org.vertx.scala.core.json._
-import org.vertx.scala.platform.Verticle
 import org.vertx.scala.mods.ScalaBusMod
 import org.vertx.scala.mods.ScalaBusMod._
-import org.vertx.scala.mods.replies.{Ok, Error}
-import com.github.fge.jsonschema.main.JsonSchema
-import com.github.fge.jsonschema.main.JsonSchemaFactory
-import com.github.fge.jackson.JsonLoader
+import org.vertx.scala.mods.replies.{Error, Ok}
+import org.vertx.scala.platform.Verticle
 
-class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSchema]) extends ScalaBusMod {
+class SchemaValidatorBusMod(verticle: Verticle, var schemaKeys: Set[String], var schemaFactory: JsonSchemaFactory, schemaUri: String, loadingCfg: LoadingConfigurationBuilder) extends ScalaBusMod {
   val container = verticle.container
   val vertx = verticle.vertx
   val logger = verticle.logger
 
   import scala.collection.JavaConverters._
-
-  val schemaFactory = JsonSchemaFactory.byDefault()
 
   def getObjectOrArray(obj: JsonObject, key: String): Option[String] = {
     Option(obj.getField(key)) map {
@@ -47,11 +46,12 @@ class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSch
     case "validate" =>
       Option(msg.body.getString("key")) match {
         case Some(key) =>
-          schemas.get(key) match {
-            case Some(schema) =>
-              try {
-                getObjectOrArray(msg.body, "json") match {
-                  case Some(json) =>
+          if (schemaKeys.contains(key)) {
+            try {
+              getObjectOrArray(msg.body, "json") match {
+                case Some(json) =>
+                  val schema = schemaFactory.getJsonSchema(s"$schemaUri$key")
+                  try {
                     val report = schema.validate(JsonLoader.fromString(json))
                     if (report.isSuccess()) {
                       Ok(Json.obj())
@@ -61,44 +61,46 @@ class SchemaValidatorBusMod(verticle: Verticle, var schemas: Map[String, JsonSch
                         Json.obj("report" ->
                           new JsonArray(report.asScala.map(_.asJson()).mkString("[", ",", "]"))))
                     }
-                  case None => Error("No JSON given!", "MISSING_JSON")
-                }
-              } catch {
-                case cce: ClassCastException => Error("Invalid JSON given!", "INVALID_JSON")
+                  } catch {
+                    case pe: ProcessingException => Error(pe.getMessage(), "VALIDATION_PROCESS_ERROR")
+                  }
+                case None => Error("No JSON given!", "MISSING_JSON")
               }
-            case None => Error("No schema found!", "INVALID_SCHEMA_KEY")
+
+            } catch {
+              case cce: ClassCastException => Error("Invalid JSON given!", "INVALID_JSON")
+            }
+          } else {
+            Error("No schema found!", "INVALID_SCHEMA_KEY")
           }
         case None => Error("No key for schema given!", "MISSING_SCHEMA_KEY")
       }
 
     case "getSchemaKeys" =>
-      Ok(Json.obj("schemas" -> Json.arr(schemas.keys.toSeq: _*)))
+      Ok(Json.obj("schemas" -> Json.arr(schemaKeys.toSeq: _*)))
 
     case "addSchema" =>
       Option(msg.body.getString("key")) match {
         case Some(key) =>
-          try {
-            val overwrite = msg.body.getBoolean("overwrite", false)
-            if (schemas.contains(key) && !overwrite) {
-              Error("Key already exists and overwrite is not true", "EXISTING_SCHEMA_KEY")
-            } else {
-              getObjectOrArray(msg.body, "jsonSchema") match {
-                case Some(jsonSchema) =>
-                  val jsNode = JsonLoader.fromString(jsonSchema)
-                  if (!schemaFactory.getSyntaxValidator().schemaIsValid(jsNode)) {
-                    Error("Schema is invalid: " + jsonSchema, "INVALID_SCHEMA")
-                  } else {
-                    schemas += (msg.body.getString("key") -> schemaFactory.getJsonSchema(jsNode))
-                    Ok(Json.obj())
-                  }
-                case None => Error("No JSON given!", "MISSING_JSON")
-              }
+          if (schemaKeys.contains(key)) {
+            Error("A schema with this key already exists", "EXISTING_SCHEMA_KEY")
+          } else {
+            getObjectOrArray(msg.body, "jsonSchema") match {
+              case Some(jsonSchema) =>
+                val jsNode = JsonLoader.fromString(jsonSchema)
+                if (!schemaFactory.getSyntaxValidator().schemaIsValid(jsNode)) {
+                  Error("Schema is invalid: " + jsonSchema, "INVALID_SCHEMA")
+                } else {
+                  schemaKeys += key
+                  schemaFactory = schemaFactory.thaw().setLoadingConfiguration(loadingCfg.preloadSchema(s"$schemaUri$key", jsNode).freeze()).freeze()
+                  Ok(Json.obj())
+                }
+              case None => Error("No JSON given!", "MISSING_JSON")
             }
-          } catch {
-            case cce: ClassCastException => Error("Invalid OVERWRITE given!", "INVALID_OVERWRITE")
           }
         case None => Error("No key for schema given!", "MISSING_SCHEMA_KEY")
       }
 
   }
+
 }

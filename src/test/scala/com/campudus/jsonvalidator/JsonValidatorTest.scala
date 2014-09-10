@@ -14,18 +14,15 @@
  */
 package com.campudus.jsonvalidator
 
-import scala.concurrent.Future
-import scala.concurrent.Promise
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import org.junit.Test
 import org.vertx.scala.core.FunctionConverters.tryToAsyncResultHandler
-import org.vertx.scala.core.json._
-import org.vertx.scala.testtools.ScalaClassRunner
-import org.vertx.scala.testtools.TestVerticle
-import org.junit.{Ignore, Test}
 import org.vertx.scala.core.eventbus.Message
+import org.vertx.scala.core.json._
+import org.vertx.scala.testtools.TestVerticle
 import org.vertx.testtools.VertxAssert._
+
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success, Try}
 
 class JsonValidatorTest extends TestVerticle {
 
@@ -56,7 +53,7 @@ class JsonValidatorTest extends TestVerticle {
           |	},
           |	"required": ["firstName", "lastName"]
           |}""".stripMargin)),
-      Json.obj("key" -> "geoSchema", "schema" -> Json.fromObjectString(
+      Json.obj("key" -> "geoschema", "schema" -> Json.fromObjectString(
         """
           |{
           |  "description": "A geographical coordinate",
@@ -64,10 +61,11 @@ class JsonValidatorTest extends TestVerticle {
           |  "properties": {
           |    "latitude": { "type": "number" },
           |    "longitude": { "type": "number" }
-          |  }
+          |  },
+          |  "required": ["latitude", "longitude"]
           |}
         """.stripMargin)),
-      Json.obj("key" -> "testSchema", "schema" -> Json.fromObjectString(
+      Json.obj("key" -> "testschema", "schema" -> Json.fromObjectString(
         """
           |{
           |  "$schema": "http://json-schema.org/draft-04/schema#",
@@ -108,7 +106,7 @@ class JsonValidatorTest extends TestVerticle {
           |      },
           |      "warehouseLocation": {
           |        "description": "Coordinates of the warehouse with the product",
-          |        "$ref": "vertxjsonschema://geoSchema"
+          |        "$ref": "vertxjsonschema://geoschema"
           |      }
           |    },
           |    "required": ["id", "name", "price"]
@@ -201,15 +199,65 @@ class JsonValidatorTest extends TestVerticle {
       |  "type": "object",
       |  "properties": {
       |    "person": {
-      |      "location" : {
-      |        "$ref": "vertxjsonschema://geoSchema"
-      |      },
-      |      "job": {
-      |        "type": "string"
+      |      "type" : "object",
+      |      "properties": {
+      |        "location" : {
+      |          "$ref": "vertxjsonschema://geoschema"
+      |        },
+      |        "job": {
+      |          "type": "string"
+      |        }
       |      }
       |    }
       |  }
       |}""".stripMargin)
+
+  val addMissingRefSchema = Json.fromObjectString(
+    """
+      |{
+      |  "$schema": "http://json-schema.org/draft-04/schema#",
+      |  "title": "Example Schema",
+      |  "type": "object",
+      |  "properties": {
+      |    "person": {
+      |      "type" : "object",
+      |      "properties": {
+      |        "location" : {
+      |          "$ref": "vertxjsonschema://missinglocationschema"
+      |        },
+      |        "job": {
+      |          "type": "string"
+      |        }
+      |      }
+      |    }
+      |  }
+      |}""".stripMargin)
+
+  val validRefSchema = Json.fromObjectString(
+    """
+      |{
+      |  "person" : {
+      |    "location" : {
+      |      "latitude": 48,
+      |      "longitude": 11
+      |    },
+      |    "job" : "Kunstfurzer"
+      |  }
+      |}
+    """.stripMargin)
+
+
+  val invalidRefSchema = Json.fromObjectString(
+    """
+      |{
+      |  "person" : {
+      |    "location" : {
+      |      "latitude": 48
+      |    },
+      |    "job" : "Kunstfurzer"
+      |  }
+      |}
+    """.stripMargin)
 
   val addNewSchema = Json.fromObjectString(
     """
@@ -255,10 +303,18 @@ class JsonValidatorTest extends TestVerticle {
       |  "required": ["firstName", "lastName"]
       |}""".stripMargin)
 
+  def printError(msg: Message[JsonObject]): String = {
+    import scala.collection.JavaConverters._
+    if (msg.body.getArray("report") != null) {
+      return s"Error: ${msg.body.getString("error")}\nMessage: ${msg.body.getString("message")}\nReport: ${msg.body.getArray("report").asScala}"
+    }
+    return s"Error: ${msg.body.getString("error")}\nMessage: ${msg.body.getString("message")}"
+  }
+
   @Test def addSchema(): Unit = {
     vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "addSchema", "jsonSchema" -> addNewSchema), {
       msg: Message[JsonObject] =>
-        assertEquals("ok", msg.body.getString("status"))
+        assertEquals(printError(msg), "ok", msg.body.getString("status"))
         vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "addSchema", "json" -> validSimpleJson), {
           msg: Message[JsonObject] =>
             assertEquals("ok", msg.body.getString("status"))
@@ -286,36 +342,19 @@ class JsonValidatorTest extends TestVerticle {
   }
 
   @Test def addSchemaWithSameKeyAndWithoutOverwrite(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema), {
+    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "testschema", "jsonSchema" -> addNewSchema), {
       msg: Message[JsonObject] =>
         assertEquals("error", msg.body.getString("status"))
         assertEquals("EXISTING_SCHEMA_KEY", msg.body.getString("error"))
-        testComplete()
-    })
-  }
-
-  @Test def OverwriteTrue(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema, "overwrite" -> true), {
-      msg: Message[JsonObject] =>
-        assertEquals("ok", msg.body.getString("status"))
         testComplete()
     })
   }
 
   @Test def OverwriteFalse(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema, "overwrite" -> false), {
+    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "testschema", "jsonSchema" -> addNewSchema), {
       msg: Message[JsonObject] =>
         assertEquals("error", msg.body.getString("status"))
         assertEquals("EXISTING_SCHEMA_KEY", msg.body.getString("error"))
-        testComplete()
-    })
-  }
-
-  @Test def invalidOverwrite(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addNewSchema, "overwrite" -> "invalid"), {
-      msg: Message[JsonObject] =>
-        assertEquals("error", msg.body.getString("status"))
-        assertEquals("INVALID_OVERWRITE", msg.body.getString("error"))
         testComplete()
     })
   }
@@ -346,9 +385,8 @@ class JsonValidatorTest extends TestVerticle {
     })
   }
 
-  @Ignore
   @Test def validJson2(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "testSchema", "json" -> validComplexJson), {
+    vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "testschema", "json" -> validComplexJson), {
       msg: Message[JsonObject] =>
         assertEquals("ok", msg.body.getString("status"))
         testComplete()
@@ -374,7 +412,7 @@ class JsonValidatorTest extends TestVerticle {
             |[ {
             |  "level" : "error",
             |  "schema" : {
-            |    "loadingURI" : "#",
+            |    "loadingURI" : "vertxjsonschema://schema0#",
             |    "pointer" : ""
             |  },
             |  "instance" : {
@@ -390,9 +428,8 @@ class JsonValidatorTest extends TestVerticle {
     })
   }
 
-  @Ignore
   @Test def invalidJson2(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "testSchema", "json" -> invalidComplexJson), {
+    vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "testschema", "json" -> invalidComplexJson), {
       msg: Message[JsonObject] =>
         assertEquals("error", msg.body.getString("status"))
         assertEquals("VALIDATION_ERROR", msg.body.getString("error"))
@@ -401,7 +438,7 @@ class JsonValidatorTest extends TestVerticle {
             |[ {
             |  "level" : "error",
             |  "schema" : {
-            |    "loadingURI" : "#",
+            |    "loadingURI" : "vertxjsonschema://testschema#",
             |    "pointer" : "/items/properties/dimensions"
             |  },
             |  "instance" : {
@@ -418,7 +455,7 @@ class JsonValidatorTest extends TestVerticle {
   }
 
   @Test def noRealJsonParameter: Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "testSchema", "json" -> 1), {
+    vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "testschema", "json" -> 1), {
       msg: Message[JsonObject] =>
         assertEquals("error", msg.body.getString("status"))
         assertEquals("INVALID_JSON", msg.body.getString("error"))
@@ -429,27 +466,62 @@ class JsonValidatorTest extends TestVerticle {
   @Test def getAllSchemas(): Unit = {
     vertx.eventBus.send(address, Json.obj("action" -> "getSchemaKeys"), {
       msg: Message[JsonObject] =>
-        assertEquals("ok", msg.body.getString("status"))
-        assertEquals(Json.arr("schema0", "geoSchema", "testSchema"), msg.body.getArray("schemas"))
+        assertEquals(printError(msg), "ok", msg.body.getString("status"))
+        assertEquals(Json.arr("schema0", "geoschema", "testschema"), msg.body.getArray("schemas"))
         testComplete()
     })
   }
 
-  @Ignore
   @Test def useReferencedSchemaWithoutProvidingItFirst(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "testSchema", "jsonSchema" -> addRefSchema, "overwrite" -> true), {
+    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "refschema", "jsonSchema" -> addMissingRefSchema), {
       msg: Message[JsonObject] =>
-        assertEquals("error", msg.body.getString("status"))
-        testComplete()
+        assertEquals(printError(msg), "ok", msg.body.getString("status"))
+        vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "refschema", "json" -> validRefSchema), {
+          msg: Message[JsonObject] =>
+            assertEquals(printError(msg), "error", msg.body.getString("status"))
+            assertEquals("VALIDATION_PROCESS_ERROR", msg.body.getString("error"))
+            testComplete()
+        })
     })
   }
 
-  @Ignore
-  @Test def useReferencedSchema(): Unit = {
-    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "refSchema", "jsonSchema" -> addNewSchema, "overwrite" -> true), {
+  @Test def useReferencedSchemaWithValidData(): Unit = {
+    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "refschema", "jsonSchema" -> addRefSchema), {
       msg: Message[JsonObject] =>
-        assertEquals("ok", msg.body.getString("status"))
-        testComplete()
+        assertEquals(printError(msg), "ok", msg.body.getString("status"))
+        vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "refschema", "json" -> validRefSchema), {
+          msg: Message[JsonObject] =>
+            assertEquals(printError(msg), "ok", msg.body.getString("status"))
+            testComplete()
+        })
+    })
+  }
+
+  @Test def useReferencedSchemaWithInvalidData(): Unit = {
+    vertx.eventBus.send(address, Json.obj("action" -> "addSchema", "key" -> "refschema", "jsonSchema" -> addRefSchema), {
+      msg: Message[JsonObject] =>
+        assertEquals(printError(msg), "ok", msg.body.getString("status"))
+        vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "refschema", "json" -> invalidRefSchema), {
+          msg: Message[JsonObject] =>
+            assertEquals(printError(msg), "error", msg.body.getString("status"))
+            assertEquals(Json.fromArrayString("""
+                |[ {
+                |  "level" : "error",
+                |  "schema" : {
+                |    "loadingURI" : "vertxjsonschema://geoschema#",
+                |    "pointer" : ""
+                |  },
+                |  "instance" : {
+                |    "pointer" : "/person/location"
+                |  },
+                |  "domain" : "validation",
+                |  "keyword" : "required",
+                |  "message" : "object has missing required properties ([\"longitude\"])",
+                |  "required" : ["latitude", "longitude"],
+                |  "missing" : ["longitude"]
+                |} ]""".stripMargin), msg.body.getArray("report"))
+            testComplete()
+        })
     })
   }
 }

@@ -14,23 +14,24 @@
  */
 package com.campudus.jsonvalidator
 
-import org.vertx.scala.platform.Verticle
-import org.vertx.scala.core.json._
-import scala.concurrent.Promise
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import org.vertx.scala.core.FunctionConverters._
-import com.github.fge.jsonschema.main.JsonSchemaFactory
-import com.github.fge.jsonschema.main.JsonSchema
 import com.github.fge.jackson.JsonLoader
+import com.github.fge.jsonschema.core.load.configuration.LoadingConfiguration
+import com.github.fge.jsonschema.main.JsonSchemaFactory
+import org.vertx.scala.core.FunctionConverters._
+import org.vertx.scala.core.json._
+import org.vertx.scala.platform.Verticle
+
+import scala.concurrent.Promise
+import scala.util.{Failure, Success, Try}
 
 class Starter extends Verticle {
 
   override def start(p: Promise[Unit]) = try {
     import scala.collection.JavaConverters._
     val config = container.config
-    val factory = JsonSchemaFactory.byDefault()
+    val schemaUri = "vertxjsonschema://"
+    val loadingCfg = LoadingConfiguration.newBuilder()
+    var factory = JsonSchemaFactory.byDefault()
 
     val configSchema = new JsonObject( """{
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -64,7 +65,8 @@ class Starter extends Verticle {
 
     val schemasConfig = config.getArray("schemas", Json.arr()).asScala
 
-    val schemas: Map[String, JsonSchema] = Map(schemasConfig.zipWithIndex.toSeq.map {
+
+    val schemaKeys: Set[String] = Set(schemasConfig.zipWithIndex.toSeq.map {
       case (obj, idx) =>
         val schema = obj.asInstanceOf[JsonObject]
         val key = schema.getString("key")
@@ -73,13 +75,15 @@ class Starter extends Verticle {
         if (!factory.getSyntaxValidator().schemaIsValid(jsNode)) {
           throw new IllegalArgumentException("Schema is invalid: " + jsonString)
         }
-        val value = factory.getJsonSchema(jsNode)
-        (key, value)
+        loadingCfg.preloadSchema(s"$schemaUri$key", jsNode)
+        key
     }: _*)
+
+    factory = factory.thaw().setLoadingConfiguration(loadingCfg.freeze()).freeze()
 
     vertx.eventBus.registerHandler(
       config.getString("address", "campudus.jsonvalidator"),
-      new SchemaValidatorBusMod(this, schemas), {
+      new SchemaValidatorBusMod(this, schemaKeys, factory, schemaUri, loadingCfg), {
         case Success(_) =>
           p.success()
         case Failure(ex) => p.failure(ex)
