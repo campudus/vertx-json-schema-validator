@@ -31,7 +31,7 @@ class Starter extends Verticle {
     val config = container.config
     val schemaUri = "vertxjsonschema://"
     val loadingCfg = LoadingConfiguration.newBuilder()
-    var factory = JsonSchemaFactory.byDefault()
+    val factory = JsonSchemaFactory.byDefault()
 
     val configSchema = new JsonObject( """{
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -79,13 +79,10 @@ class Starter extends Verticle {
         key
     }: _*)
 
-    factory = factory.thaw().setLoadingConfiguration(loadingCfg.freeze()).freeze()
-
     vertx.eventBus.registerHandler(
       config.getString("address", "campudus.jsonvalidator"),
-      new SchemaValidatorBusMod(this, schemaKeys, factory, schemaUri, loadingCfg), {
-        case Success(_) =>
-          p.success()
+      new SchemaValidatorBusMod(this, schemaKeys, factory.thaw().setLoadingConfiguration(loadingCfg.freeze()).freeze(), schemaUri, loadingCfg), {
+        case Success(_) => p.success()
         case Failure(ex) => p.failure(ex)
       }: Try[Void] => Unit)
 

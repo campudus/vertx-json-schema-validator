@@ -24,7 +24,7 @@ import org.vertx.scala.mods.ScalaBusMod._
 import org.vertx.scala.mods.replies.{Error, Ok}
 import org.vertx.scala.platform.Verticle
 
-class SchemaValidatorBusMod(verticle: Verticle, var schemaKeys: Set[String], var schemaFactory: JsonSchemaFactory, schemaUri: String, loadingCfg: LoadingConfigurationBuilder) extends ScalaBusMod {
+class SchemaValidatorBusMod(verticle: Verticle, private var schemaKeys: Set[String], private var schemaFactory: JsonSchemaFactory, schemaUri: String, loadingCfg: LoadingConfigurationBuilder) extends ScalaBusMod {
   val container = verticle.container
   val vertx = verticle.vertx
   val logger = verticle.logger
