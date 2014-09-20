@@ -22,6 +22,7 @@ import org.vertx.scala.testtools.TestVerticle
 import org.vertx.testtools.VertxAssert._
 
 import scala.concurrent.{Future, Promise}
+import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
 class JsonValidatorTest extends TestVerticle {
@@ -32,86 +33,9 @@ class JsonValidatorTest extends TestVerticle {
     val p = Promise[Unit]
 
     val config = Json.obj("schemas" -> Json.arr(
-      Json.obj("key" -> "schema0", "schema" -> Json.fromObjectString(
-        """
-          |{
-          |  	"$schema": "http://json-schema.org/draft-04/schema#",
-          |	"title": "Example Schema",
-          |	"type": "object",
-          |	"properties": {
-          |		"firstName": {
-          |			"type": "string"
-          |		},
-          |		"lastName": {
-          |			"type": "string"
-          |		},
-          |		"age": {
-          |			"description": "Age in years",
-          |			"type": "integer",
-          |			"minimum": 0
-          |		}
-          |	},
-          |	"required": ["firstName", "lastName"]
-          |}""".stripMargin)),
-      Json.obj("key" -> "geoschema", "schema" -> Json.fromObjectString(
-        """
-          |{
-          |  "description": "A geographical coordinate",
-          |  "type": "object",
-          |  "properties": {
-          |    "latitude": { "type": "number" },
-          |    "longitude": { "type": "number" }
-          |  },
-          |  "required": ["latitude", "longitude"]
-          |}
-        """.stripMargin)),
-      Json.obj("key" -> "testschema", "schema" -> Json.fromObjectString(
-        """
-          |{
-          |  "$schema": "http://json-schema.org/draft-04/schema#",
-          |  "title": "Product set",
-          |  "type": "array",
-          |  "items": {
-          |    "title": "Product",
-          |    "type": "object",
-          |    "properties": {
-          |      "id": {
-          |        "description": "The unique identifier for a product",
-          |        "type": "number"
-          |      },
-          |      "name": {
-          |        "type": "string"
-          |      },
-          |      "price": {
-          |        "type": "number",
-          |        "minimum": 0,
-          |        "exclusiveMinimum": true
-          |      },
-          |      "tags": {
-          |        "type": "array",
-          |        "items": {
-          |          "type": "string"
-          |        },
-          |        "minItems": 1,
-          |        "uniqueItems": true
-          |      },
-          |      "dimensions": {
-          |        "type": "object",
-          |        "properties": {
-          |          "length": {"type": "number"},
-          |          "width": {"type": "number"},
-          |          "height": {"type": "number"}
-          |        },
-          |        "required": ["length", "width", "height"]
-          |      },
-          |      "warehouseLocation": {
-          |        "description": "Coordinates of the warehouse with the product",
-          |        "$ref": "vertxjsonschema://geoschema"
-          |      }
-          |    },
-          |    "required": ["id", "name", "price"]
-          |  }
-          |}""".stripMargin))))
+      Json.obj("key" -> "schema0", "schema" -> jsonFromFile("schema0.json")),
+      Json.obj("key" -> "geoschema", "schema" -> jsonFromFile("geoSchema.json")),
+      Json.obj("key" -> "testschema", "schema" -> jsonFromFile("testSchema.json"))))
 
     container.deployModule(System.getProperty("vertx.modulename"), config, 1, {
       case Success(deploymentId) => p.success()
@@ -119,6 +43,9 @@ class JsonValidatorTest extends TestVerticle {
     }: Try[String] => Unit)
     p.future
   }
+
+  private def jsonFromFile(f: String): JsonObject = Json.fromObjectString(
+    Source.fromFile(f).getLines().mkString)
 
   val validComplexJson = Json.fromArrayString(
     """
@@ -504,22 +431,22 @@ class JsonValidatorTest extends TestVerticle {
         vertx.eventBus.send(address, Json.obj("action" -> "validate", "key" -> "refschema", "json" -> invalidRefSchema), {
           msg: Message[JsonObject] =>
             assertEquals(printError(msg), "error", msg.body.getString("status"))
-            assertEquals(Json.fromArrayString("""
-                |[ {
-                |  "level" : "error",
-                |  "schema" : {
-                |    "loadingURI" : "vertxjsonschema://geoschema#",
-                |    "pointer" : ""
-                |  },
-                |  "instance" : {
-                |    "pointer" : "/person/location"
-                |  },
-                |  "domain" : "validation",
-                |  "keyword" : "required",
-                |  "message" : "object has missing required properties ([\"longitude\"])",
-                |  "required" : ["latitude", "longitude"],
-                |  "missing" : ["longitude"]
-                |} ]""".stripMargin), msg.body.getArray("report"))
+            assertEquals(Json.fromArrayString( """
+                                                 |[ {
+                                                 |  "level" : "error",
+                                                 |  "schema" : {
+                                                 |    "loadingURI" : "vertxjsonschema://geoschema#",
+                                                 |    "pointer" : ""
+                                                 |  },
+                                                 |  "instance" : {
+                                                 |    "pointer" : "/person/location"
+                                                 |  },
+                                                 |  "domain" : "validation",
+                                                 |  "keyword" : "required",
+                                                 |  "message" : "object has missing required properties ([\"longitude\"])",
+                                                 |  "required" : ["latitude", "longitude"],
+                                                 |  "missing" : ["longitude"]
+                                                 |} ]""".stripMargin), msg.body.getArray("report"))
             testComplete()
         })
     })
