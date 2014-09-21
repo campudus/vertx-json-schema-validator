@@ -1,0 +1,17 @@
+[
+  {
+    "level" : "error",
+    "schema" : {
+      "loadingURI" : "vertxjsonschema://geoschema#",
+      "pointer" : ""
+    },
+    "instance" : {
+      "pointer" : "/person/location"
+    },
+    "domain" : "validation",
+    "keyword" : "required",
+    "message" : "object has missing required properties ([\"longitude\"])",
+    "required" : ["latitude", "longitude"],
+    "missing" : ["longitude"]
+  }
+]

@@ -11,7 +11,7 @@
     },
     "age" : {
       "description" : "Age in years",
-      "type" : "integer",
+      "type" : "blub",
       "minimum" : 0
     }
   },

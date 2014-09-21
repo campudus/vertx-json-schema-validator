@@ -1,0 +1,17 @@
+[
+  {
+    "level" : "error",
+    "schema" : {
+      "loadingURI" : "vertxjsonschema://testschema#",
+      "pointer" : "/items/properties/dimensions"
+    },
+    "instance" : {
+      "pointer" : "/1/dimensions"
+    },
+    "domain" : "validation",
+    "keyword" : "required",
+    "message" : "object has missing required properties ([\"width\"])",
+    "required" : [ "height", "length", "width" ],
+    "missing" : [ "width" ]
+  }
+]

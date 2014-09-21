@@ -1,0 +1,17 @@
+[
+  {
+    "level" : "error",
+    "schema" : {
+      "loadingURI" : "vertxjsonschema://schema0#",
+      "pointer" : ""
+    },
+    "instance" : {
+      "pointer" : ""
+    },
+    "domain" : "validation",
+    "keyword" : "required",
+    "message" : "object has missing required properties ([\"lastName\"])",
+    "required" : [ "firstName", "lastName" ],
+    "missing" : [ "lastName" ]
+  }
+]
