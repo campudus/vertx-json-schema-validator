@@ -6,7 +6,7 @@ import sbt._
 object Variables {
   val org = "com.campudus"
   val name = "json-schema-validator"
-  val version = "1.2.0"
+  val version = "1.3.0-SNAPSHOT"
   val scalaVersion = "2.10.4"
   val crossScalaVersions = Seq("2.10.4", "2.11.2")
   val description = "Vertx module to validate JSON against a schema (see http://json-schema.org/)"
