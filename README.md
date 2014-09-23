@@ -7,9 +7,12 @@ licensed under the [LGPLv3](https://github.com/fge/json-schema-validator/blob/ma
 
 ## Requirements
 * Vert.x 2.1.x
+* Vert.x lang-scala 1.1.0-M1
 
 ##Installation
-`vertx install com.campudus~json-schema-validator~1.1.0`
+`vertx install com.campudus~json-schema-validator~1.2.0`
+
+You might need to update your `langs.properties` file, to use `lang-scala` version `1.1.0-M1` for the newest version.
 
 ## Configuration
 
