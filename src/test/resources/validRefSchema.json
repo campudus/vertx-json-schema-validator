@@ -1,0 +1,9 @@
+{
+  "person" : {
+    "location" : {
+      "latitude" : 48,
+      "longitude" : 11
+    },
+    "job" : "Kunstfurzer"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "Example Schema",
+  "type" : "object",
+  "properties" : {
+    "person" : {
+      "type" : "object",
+      "properties" : {
+        "location" : {
+          "$ref" : "vertxjsonschema://geoschema"
+        },
+        "job" : {
+          "type" : "string"
+        }
+      }
+    }
+  }
+}
